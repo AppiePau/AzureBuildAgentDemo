@@ -1,0 +1,26 @@
+<div class="container">
+    <h1 class="mt-3">Het weer ☀️</h1>
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card mt-3">
+                <div class="card-header">
+                    Voorspellingen
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped m-0">
+                        <tbody>
+                            @for (item of weer; track $index) {
+                            <tr>
+                                <td>{{item.date}} </td>
+                                <td class="text-end"> {{item.temperatureC}} C</td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<router-outlet />

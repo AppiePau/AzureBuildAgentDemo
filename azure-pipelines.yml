@@ -1,0 +1,76 @@
+# ASP.NET Core (.NET Framework)
+# Build and test ASP.NET Core projects targeting the full .NET Framework.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+name: 'Mooi Weer Demo'
+
+pool: 'Mooi Weer Build'
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  projectPath: '**/backend.csproj'
+
+stages:
+ - stage: Build
+   displayName: Build Stage
+   jobs:
+     - job: Build
+       steps:
+        - task: UseDotNet@2
+          displayName: 'Install .NET Core SDK'
+          inputs:
+            version: 9.x
+            installationPath: '$(Agent.TempDirectory)/dotnet'
+        - task: NodeTool@0
+          displayName: 'Install Node.Js'
+          inputs:
+            versionSource: 'spec'
+            versionSpec: '20.x'
+        - task: CmdLine@2
+          displayName: 'Install Angualar 18 CLI'
+          inputs:
+            script: 'npm i @angular/cli@18 -g'
+        - task: Npm@1
+          displayName: 'Install Node Modules'
+          inputs:
+            command: 'install'
+            workingDir: 'frontend'
+        - task: Bash@3
+          displayName: 'Docker Build and publish'
+          inputs:
+            filePath: 'dockerpublish.sh'
+        - task: CopyFiles@2
+          inputs:
+            SourceFolder: '_deployment'
+            Contents: |
+              **/*
+              !.git/**/*
+            TargetFolder: '$(Build.ArtifactStagingDirectory)'
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            ArtifactName: 'deployment'
+            publishLocation: 'Container'
+ - stage: Deploy
+   displayName: Deploy Stage
+   pool: 'Mooi Weer Production'
+   jobs:
+    - job: Deploy
+      steps:
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          buildType: 'current'
+          artifactName: 'deployment'
+          targetPath: '$(Pipeline.Workspace)'
+      - task: CopyFiles@2
+        inputs:
+          SourceFolder: '$(Pipeline.Workspace)'
+          Contents: |
+            traefik/**
+          TargetFolder: '/opt/docker'
+      - task: Bash@3
+        inputs:
+          filePath: '$(Pipeline.Workspace)/deploy.sh'
+
